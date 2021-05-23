@@ -107,7 +107,7 @@ Inductive SearchTree_half_out: (*outer border of partial tree*)
     forall lo hi h l n,
       SearchTree_half_out lo h hi ->
       SearchTree lo l (Some (key_of_node n)) ->
-      optionZ_lt h(Some (key_of_node n)) hi ->
+      optionZ_lt (Some (key_of_node n)) hi ->
       SearchTree_half_out lo ((L, n, l) :: h) hi
 | ST_out_cons_R:
     forall lo hi h r n,
@@ -144,6 +144,8 @@ Definition splay (h: partial_tree) (t t': tree): Prop :=
 
 Definition preserves: Prop :=
   forall HI LO hi lo h t t',
+    optionZ_lt LO lo ->
+    optionZ_lt hi HI ->
     SearchTree_half_in lo h hi ->
     SearchTree_half_out LO h HI ->
     SearchTree lo t hi ->
@@ -156,5 +158,123 @@ Definition correct: Prop :=
     Abs t m2 ->
     splay h t t' ->
     Abs t' (combine m1 m2).
+
+Print clos_refl_trans.
+
+Definition splay' :partial_tree * tree -> partial_tree * tree -> Prop :=
+  clos_refl_trans splay_step .
+
+Lemma splay'_splay :
+  forall h t t',
+  splay' (h,t) (nil,t') -> splay h t t'.
+Proof.
+  intros.
+  unfold splay.
+  unfold splay' in H.
+  exact H.
+Qed.
+
+Lemma splay_splay':
+  forall h t t',
+  splay h t t' -> splay' (h,t) (nil,t').
+Proof.
+  intros.
+  unfold splay'.
+  unfold splay in H.
+  exact H.
+Qed.
+
+Lemma step_preserves: 
+  forall h h' t t' lo hi LO HI,
+    optionZ_lt LO lo ->
+    optionZ_lt hi HI
+    SearchTree_half_in lo h hi ->
+    SearchTree_half_out LO h HI ->
+    SearchTree lo t hi ->
+    splay_step (h,t) (h',t') ->
+    exists lo' hi',
+      (optionZ_lt LO lo') /\
+      (optionZ_lt hi' HI) /\
+      (SearchTree lo' t' hi') /\ 
+      (SearchTree_half_in lo' h' hi') /\ 
+      (SearchTree_half_out LO h' HI).
+Proof.
+  intros.
+  inversion H2;subst.
+  +
+Admitted.
+
+Lemma in_bounded_by_out: 
+  forall lo hi LO HI h,
+    h <> nil ->
+    SearchTree_half_in lo h hi ->
+    SearchTree_half_out LO h HI ->
+    (optionZ_lt LO lo) /\ (optionZ_lt hi HI).
+Proof.
+Admitted.
+
+Lemma looser_SearchTree: 
+  forall lo' hi' lo hi t,
+    optionZ_lt lo lo' -> 
+    optionZ_lt hi' hi ->
+    SearchTree lo' t hi' ->
+    SearchTree lo t hi.
+Proof.
+Admitted.
+
+Print SearchTree.
+
+Lemma subtree_SearchTree:
+  forall lo hi l n r,
+    SearchTree lo (T l n r) hi ->
+    (SearchTree lo l hi) /\ (SearchTree lo r hi).
+Proof.
+Admitted.
+
+Lemma splay'_n1: 
+  forall h t t',
+    splay h t t'.
+Proof.
+Admitted.
+
+Theorem preserve: preserves.
+Proof.
+  unfold preserves;intros.
+  apply splay_splay' in H2.
+  revert H H0 H1.
+  revert lo hi LO HI.
+  induction_1n H2; intros.
+  +
+  2:{ rename p into h'.
+      pose proof step_preserves _ _ _ _ _ _ _ _ H1 H2 H3 H.
+      clear H1 H2 H3 H.
+      destruct H4 as [lo' [hi' [? [? ?]]]].
+      specialize (IHrt _ _ _ _ H1 H2 H).
+      exact IHrt.
+    }
+  
+  
+Admitted.
+
+
+Lemma step_correct: 
+  forall h t h' t' m1 m2 ,
+    splay_step (h,t) (h',t') ->
+    Abs_half h m1 ->
+    Abs t m2 ->
+    exists m1' m2',
+      (Abs_half h' m1') /\ (Abs t' m2') /\ 
+      (forall k, combine m1' m2' k = combine m1 m2 k).
+Proof.
+Admitted.
+
+
+
+Theorem correctness: correct.
+Proof.
+  unfold correct;intros.
+Admitted.
+
+
 
 (* 2021-05-07 20:39 *)
