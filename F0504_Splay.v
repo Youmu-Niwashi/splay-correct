@@ -74,7 +74,7 @@ Definition half_tree: Type := (LeftOrRight * Node * tree)%type.
 
 Definition partial_tree: Type := list half_tree.
 
-Inductive SearchTree_half_in:
+Inductive SearchTree_half_in: (*inner border of partial tree*)
   option Key -> partial_tree -> option Key -> Prop :=
 | ST_in_nil:
     forall lo hi, optionZ_lt lo hi -> SearchTree_half_in lo nil hi
@@ -99,7 +99,7 @@ Inductive Abs_half : partial_tree -> relate_map -> Prop :=
       (combine m1
          (combine (relate_single (key_of_node n) (value_of_node n)) m2)).
 
-Inductive SearchTree_half_out:
+Inductive SearchTree_half_out: (*outer border of partial tree*)
   option Key -> partial_tree -> option Key ->  Prop :=
 | ST_out_nil:
     forall lo hi, optionZ_lt lo hi -> SearchTree_half_out lo nil hi 
