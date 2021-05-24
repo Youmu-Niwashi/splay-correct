@@ -58,7 +58,7 @@ Definition combine (m1 m2: relate_map): relate_map :=
     end.
 
 Inductive Abs : tree -> relate_map -> Prop :=
-| Abs_E : Abs E relate_default
+| Abs_E : forall m, (forall k, m k = relate_default k) -> Abs E m
 | Abs_T: forall l n r lm rm,
     Abs l lm ->
     Abs r rm ->
@@ -91,7 +91,7 @@ Inductive SearchTree_half_in: (*inner border of partial tree*)
       SearchTree_half_in lo ((R, n, r) :: h) (Some (key_of_node n)).
 
 Inductive Abs_half : partial_tree -> relate_map -> Prop :=
-| Abs_half_nil : Abs_half nil relate_default
+| Abs_half_nil : forall m, (forall k, m k = relate_default k) -> Abs_half nil m
 | Abs_half_cons: forall LR n t h m1 m2,
     Abs t m1 ->
     Abs_half h m2 ->
@@ -145,13 +145,13 @@ Definition splay (h: partial_tree) (t t': tree): Prop :=
 
 Definition preserves: Prop :=
   forall HI LO hi lo h t t',
-    optionZ_lt LO (Some lo) ->
-    optionZ_lt (Some hi) HI ->
+    optionZ_lt (Some LO) (Some lo) ->
+    optionZ_lt (Some hi) (Some HI) ->
     SearchTree_half_in (Some lo) h (Some hi) ->
-    SearchTree_half_out LO h HI ->
+    SearchTree_half_out (Some LO) h (Some HI) ->
     SearchTree (Some lo) t (Some hi)->
     splay h t t' ->
-    SearchTree LO t' HI.
+    SearchTree (Some LO) t' (Some HI).
 
 Definition correct: Prop :=
   forall h t t' m1 m2,
@@ -187,24 +187,30 @@ Qed.
 
 Lemma step_preserves: 
   forall h h' t t' lo hi LO HI,
-    optionZ_lt LO (Some lo) ->
-    optionZ_lt (Some hi) HI ->
+    optionZ_lt (Some LO) (Some lo) ->
+    optionZ_lt (Some hi) (Some HI) ->
     SearchTree_half_in (Some lo) h (Some hi) ->
-    SearchTree_half_out LO h HI ->
+    SearchTree_half_out (Some LO) h (Some HI) ->
     SearchTree (Some lo) t (Some hi) ->
     splay_step (h,t) (h',t') ->
     exists lo' hi',
-      (optionZ_lt LO (Some lo')) /\
-      (optionZ_lt (Some hi') HI) /\
+      (optionZ_lt (Some LO) (Some lo')) /\
+      (optionZ_lt (Some hi') (Some HI)) /\
       (SearchTree (Some lo') t' (Some hi')) /\ 
       (SearchTree_half_in (Some lo') h' (Some hi')) /\ 
-      (SearchTree_half_out LO h' HI).
+      (SearchTree_half_out (Some LO) h' (Some HI)).
 Proof.
   intros.
   inversion H4;subst.
-  +
-  
+  + inversion H1;subst. Print SearchTree_half_out.
+    inversion H8;subst.
+    rename H3 into H_Tn1, H11 into H_c, H13 into H_d.
+    rename H12 into H_h'.
+    clear H1 H8.
+    exists lo. (* how to get hi'*)
 Admitted.
+
+
 
 Lemma optionZ_lt_cong: forall n lo hi,
 optionZ_lt (Some (n)) hi->
@@ -258,12 +264,14 @@ Qed.
 
 Lemma looser_SearchTree: 
   forall lo' hi' lo hi t,
-    optionZ_lt lo lo' -> 
-    optionZ_lt hi' hi ->
-    SearchTree lo' t hi' ->
+    optionZ_lt lo (Some lo') -> 
+    optionZ_lt (Some hi') hi ->
+    SearchTree (Some lo') t (Some hi') ->
     SearchTree lo t hi.
 Proof.
-Admitted.
+intros. 
+inversion H1. subst. constructor. pose proof optionZ_lt_cong _ _ _ H0 H2. pose proof optionZ_lt_cong _ _ _ H3 H. exact H4.  
+subst. constructor. pose proof looser_SearchTree_l _ _ _ _ H H2. tauto. pose proof looser_SearchTree_r _ _ _ _ H0 H3. tauto. Qed.
 
 Print SearchTree.
 
@@ -287,6 +295,24 @@ Proof.
 Qed.
 
 
+Lemma combine_com: 
+  forall m1 m2,
+    forall k, combine m1 m2 k = combine m2 m1 k.
+Proof.
+  intros.
+  unfold combine.
+  destruct (m1 k);destruct (m2 k);reflexivity.
+Qed.
+
+Lemma combine_asso:
+  forall m1 m2 m3, 
+    forall k, combine m1 (combine m2 m3) k = combine (combine m1 m2) m3 k.
+Proof.
+  intros.
+  unfold combine.
+  destruct (m1 k) eqn:H1;destruct (m2 k) eqn:H2;destruct (m3 k) eqn:H3. try reflexivity.
+Admitted.
+  
 Lemma step_correct: 
   forall h t h' t' m1 m2 ,
     splay_step (h,t) (h',t') ->
@@ -296,14 +322,33 @@ Lemma step_correct:
       (Abs_half h' m1') /\ (Abs t' m2') /\ 
       (forall k, combine m1' m2' k = combine m1 m2 k).
 Proof.
+  intros.
+  inversion H;subst.
+  + inversion H0;subst.
+    inversion H8;subst.
+    inversion H1;subst.
+    exists m4. 
+    exists (combine lm (combine (relate_single (key_of_node n1) (value_of_node n1)) 
+     (combine rm (combine (relate_single (key_of_node n2) (value_of_node n2)) 
+     (combine m0 (combine (relate_single (key_of_node n3) (value_of_node n3))
+      m1)))))).
+    split; try split.
+    { exact H10. }
+    { constructor;try tauto; try constructor;try tauto;try constructor;tauto . }
+    intros.
+    simpl.
+    
 Admitted.
 
 Lemma combine_default:
-  forall m ,
-    forall k, m k = combine relate_default m k .
+  forall m0,
+  (forall k, m0 k = relate_default k)->
+  (forall m,
+    forall k, m k = combine m0 m k ).
 Proof.
-  intros. unfold combine, relate_default. induction m; reflexivity. 
+intros. unfold combine, relate_default. induction m. specialize (H k). rewrite H. simpl. reflexivity. specialize (H k). rewrite H. simpl. reflexivity. 
 Qed.
+
 
 Lemma Abs_congr: 
   forall t m1 m2, 
@@ -311,6 +356,17 @@ Lemma Abs_congr:
     Abs t m1 -> 
     Abs t m2.
 Proof.
+  intros.
+  revert m2 H.
+  induction H0;intros.
+  + apply Abs_E.
+    intros.
+    specialize (H k).
+    specialize (H0 k).
+    rewrite <- H0.
+    exact H.
+  + 
+
 Admitted.
 
 
@@ -322,9 +378,9 @@ Proof.
   revert m1 m2.
   induction_1n H1;intros.
   + inversion H;subst.
-    pose proof combine_default m2.
-    pose proof Abs_congr t' m2 (combine relate_default m2) H1 H0.
-    exact H2.
+    pose proof combine_default m1 H1 m2. 
+    pose proof Abs_congr t' m2 (combine m1 m2) H2 H0. 
+    exact H3.
   + pose proof step_correct _ _ _ _ _ _ H H1 H2.
     destruct H3 as [m1' [m2' [? [? ?]]]].
     clear H H1 H2.
