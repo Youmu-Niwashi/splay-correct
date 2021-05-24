@@ -3,6 +3,7 @@ Require Import Coq.ZArith.ZArith.
 Require Import PL.RTClosure.
 Import ListNotations.
 Local Open Scope Z.
+Require Import PL.Imp.
 
 (** Splay tree is a kind of self-balanced binary search tree. You may learn this
     data structure from online resources like:
@@ -144,11 +145,11 @@ Definition splay (h: partial_tree) (t t': tree): Prop :=
 
 Definition preserves: Prop :=
   forall HI LO hi lo h t t',
-    optionZ_lt LO lo ->
-    optionZ_lt hi HI ->
-    SearchTree_half_in lo h hi ->
+    optionZ_lt LO (Some lo) ->
+    optionZ_lt (Some hi) HI ->
+    SearchTree_half_in (Some lo) h (Some hi) ->
     SearchTree_half_out LO h HI ->
-    SearchTree lo t hi ->
+    SearchTree (Some lo) t (Some hi)->
     splay h t t' ->
     SearchTree LO t' HI.
 
@@ -186,32 +187,74 @@ Qed.
 
 Lemma step_preserves: 
   forall h h' t t' lo hi LO HI,
-    optionZ_lt LO lo ->
-    optionZ_lt hi HI ->
-    SearchTree_half_in lo h hi ->
+    optionZ_lt LO (Some lo) ->
+    optionZ_lt (Some hi) HI ->
+    SearchTree_half_in (Some lo) h (Some hi) ->
     SearchTree_half_out LO h HI ->
-    SearchTree lo t hi ->
+    SearchTree (Some lo) t (Some hi) ->
     splay_step (h,t) (h',t') ->
     exists lo' hi',
-      (optionZ_lt LO lo') /\
-      (optionZ_lt hi' HI) /\
-      (SearchTree lo' t' hi') /\ 
-      (SearchTree_half_in lo' h' hi') /\ 
+      (optionZ_lt LO (Some lo')) /\
+      (optionZ_lt (Some hi') HI) /\
+      (SearchTree (Some lo') t' (Some hi')) /\ 
+      (SearchTree_half_in (Some lo') h' (Some hi')) /\ 
       (SearchTree_half_out LO h' HI).
 Proof.
   intros.
-  inversion H2;subst.
+  inversion H4;subst.
   +
+  
 Admitted.
 
-Lemma in_bounded_by_out: 
-  forall lo hi LO HI h,
-    h <> nil ->
-    SearchTree_half_in lo h hi ->
-    SearchTree_half_out LO h HI ->
-    (optionZ_lt LO lo) /\ (optionZ_lt hi HI).
+Lemma optionZ_lt_cong: forall n lo hi,
+optionZ_lt (Some (n)) hi->
+optionZ_lt lo (Some (n))->
+optionZ_lt lo hi.
 Proof.
-Admitted.
+intros. induction hi; simpl in H;simpl; induction lo; simpl in H0; simpl; try exact I; unfold Key in *. lia. Qed. 
+
+Lemma optionZ_lt_SearchTree: forall l lo hi,
+SearchTree lo l hi
+-> optionZ_lt lo hi.
+Proof.
+intros. induction H. tauto. pose proof optionZ_lt_cong _ _ _ IHSearchTree2 IHSearchTree1. tauto. 
+Qed.
+
+
+Lemma looser_SearchTree_l: 
+  forall lo' lo hi t,
+    optionZ_lt lo (Some lo') -> 
+    SearchTree (Some lo') t (Some hi) ->
+    SearchTree lo t (Some hi).
+Proof.
+  intros. revert H. revert lo. revert H0. revert lo'. revert hi.
+  induction t;subst.  
+  2:{ intros. inversion H0; subst. constructor. 
+      specialize (IHt1 (key_of_node n) lo' H6 lo H). 
+      exact IHt1. exact H7. }
+  intros. constructor. 
+  pose proof optionZ_lt_SearchTree _ _ _ H0. 
+  pose proof optionZ_lt_cong _ _ _ H1 H. 
+  tauto. 
+Qed.
+
+Lemma looser_SearchTree_r: 
+  forall hi' lo hi t,
+    optionZ_lt (Some hi') hi -> 
+    SearchTree (Some lo) t (Some hi') ->
+    SearchTree (Some lo) t hi.
+Proof.
+  intros. revert H. revert hi. revert H0. revert lo. revert hi'. 
+  induction t;subst.  
+  2:{ intros. inversion H0; subst. 
+      constructor. exact H6. 
+      specialize (IHt2 hi' (key_of_node n) H7 hi H). 
+      exact IHt2. }
+  intros. constructor. 
+  pose proof optionZ_lt_SearchTree _ _ _ H0. 
+  pose proof optionZ_lt_cong _ _ _ H H1. 
+  tauto. 
+Qed.
 
 Lemma looser_SearchTree: 
   forall lo' hi' lo hi t,
@@ -223,13 +266,6 @@ Proof.
 Admitted.
 
 Print SearchTree.
-
-Lemma subtree_SearchTree:
-  forall lo hi l n r,
-    SearchTree lo (T l n r) hi ->
-    (SearchTree lo l hi) /\ (SearchTree lo r hi).
-Proof.
-Admitted.
 
 
 Theorem preserve: preserves.
@@ -246,8 +282,8 @@ Proof.
       specialize (IHrt _ _ _ _ H H1 H3 H4 H2).
       exact IHrt.
     }
-  pose proof looser_SearchTree _ _ _ _ _ H H0 H3.
-  exact H4.
+  inversion H1. inversion H2. subst. clear H1 H2. 
+  pose proof looser_SearchTree _ _ _ _ _ H H0 H3. tauto. 
 Qed.
 
 
@@ -266,7 +302,8 @@ Lemma combine_default:
   forall m ,
     forall k, m k = combine relate_default m k .
 Proof.
-Admitted.
+  intros. unfold combine, relate_default. induction m; reflexivity. 
+Qed.
 
 Lemma Abs_congr: 
   forall t m1 m2, 
@@ -295,7 +332,7 @@ Proof.
     clear H3 H4.
     pose proof Abs_congr t' (combine m1' m2') (combine m1 m2) H5 IHrt.
     exact H.
-Admitted.
+Qed.
 
 
 
