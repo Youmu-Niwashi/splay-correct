@@ -33,6 +33,12 @@ Definition optionZ_lt (ok1 ok2: option Key): Prop :=
   | Some k1, Some k2 => k1 < k2
   | _, _ => True
   end.
+  
+Definition optionZ_le (ok1 ok2: option Key): Prop :=
+  match ok1, ok2 with
+  | Some k1, Some k2 => k1 <= k2
+  | _, _ => True
+  end.
 
 Inductive SearchTree : option Key -> tree -> option Key -> Prop :=
 | ST_E : forall lo hi, optionZ_lt lo hi -> SearchTree lo E hi
@@ -185,6 +191,43 @@ Proof.
   exact H.
 Qed.
 
+
+Lemma inner_border_expansion_L: 
+  forall lo hi LO HI n l (h:partial_tree),
+    optionZ_lt (Some LO) (Some lo) ->
+    SearchTree_half_in (Some lo) ((L, n, l)::h) (Some hi) ->
+    SearchTree_half_out (Some LO) ((L, n, l)::h) (Some HI) ->
+    exists lo' ,
+      SearchTree_half_in (Some lo') h (Some hi) /\
+      SearchTree (Some lo') l (Some (key_of_node n)) /\
+      optionZ_lt (Some LO) (Some lo').
+Proof.
+  intros.
+  inversion H0;subst.
+  inversion H1;subst.
+  inversion H7;subst.
+  + unfold Key in *.
+    
+    
+    
+Admitted.
+
+Lemma inner_border_expansion_R: 
+  forall lo hi LO HI n r (h:partial_tree),
+    optionZ_lt (Some hi) (Some HI) ->
+    SearchTree_half_in (Some lo) ((R, n, r)::h) (Some hi) ->
+    SearchTree_half_out (Some LO) ((R, n, r)::h) (Some HI) ->
+    exists hi',
+      SearchTree_half_in (Some lo) h (Some hi') /\
+      SearchTree (Some (key_of_node n)) r (Some hi') /\
+      optionZ_lt (Some hi') (Some HI).
+Proof.
+  intros.
+  inversion H0;subst.
+  { inversion H5;subst.
+    +
+Admitted.
+
 Lemma step_preserves: 
   forall h h' t t' lo hi LO HI,
     optionZ_lt (Some LO) (Some lo) ->
@@ -202,14 +245,25 @@ Lemma step_preserves:
 Proof.
   intros.
   inversion H4;subst.
-  + inversion H1;subst. Print SearchTree_half_out.
+  + pose proof inner_border_expansion_R _ _ _ _ _ _ _ H0 H1 H2.
+    destruct H5 as [hi0 [? [? ?]]].
+    inversion H2;subst.
+    pose proof inner_border_expansion_R _ _ _ _ _ _ _ H7 H5 H12.
+    destruct H8 as [hi1 [? [? ?]]].
+    inversion H12;subst.
+    exists lo, hi1.
+    split;[exact H|].
+    split;[exact H10|].
+    split;[|split;[exact H8|exact H18]].
+    clear H5 H7 H12 H14 H15 H8 H10 H18 H20 H21.
+    inversion H3;subst;clear H3.
+    inversion H1;subst.
     inversion H8;subst.
-    rename H3 into H_Tn1, H11 into H_c, H13 into H_d.
-    rename H12 into H_h'.
-    clear H1 H8.
-    exists lo. (* how to get hi'*)
+    constructor;[tauto|].
+    constructor;[tauto|].
+    constructor;tauto.
+  +
 Admitted.
-
 
 
 Lemma optionZ_lt_cong: forall n lo hi,
