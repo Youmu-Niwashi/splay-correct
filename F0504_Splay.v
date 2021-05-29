@@ -203,28 +203,21 @@ Lemma splay_splay':
   forall h t t',
   splay h t t' -> splay' (h,t) (nil,t').
 Proof.
-  intros.
-  unfold splay'.
-  unfold splay in H.
-  exact H.
+  intros. unfold splay'. unfold splay in H. exact H.
 Qed.
 
 Lemma lt_le:
   forall a b,
   optionZ_lt a b -> optionZ_le a b.
 Proof.
-  intros.
-  destruct a;destruct b;simpl in *;try tauto.
-  lia.
+  intros. destruct a;destruct b;simpl in *;try tauto. lia.
 Qed.
 
 Lemma lt_le':
   forall a b,
   optionZ_lt (Some a) (Some b) -> optionZ_le (Some a) (Some (b-1)).
 Proof.
-  intros.
-  simpl in *.
-  lia.
+  intros. simpl in *. lia.
 Qed.
 
 Lemma lt_le'':
@@ -234,6 +227,13 @@ Proof.
   intros.
   simpl in *.
   lia.
+Qed.
+
+Lemma lt_le''':
+  forall a b,
+  optionZ_lt (Some a) (Some (b+1)) -> optionZ_le (Some a) (Some b).
+Proof.
+  intros. simpl in *. lia.
 Qed.
 
 Lemma optionZ_lt_cong: forall n lo hi,
@@ -371,7 +371,7 @@ Fixpoint supremum (t: tree): option Key:=
   | T l n r => supremum r
   end.
 
-Lemma sup_fact:
+Lemma sup_fact':
   forall t,
     t <> E ->
     exists v, supremum t = Some v.
@@ -391,11 +391,20 @@ Proof.
     exact H1.
 Qed.
 
+Lemma sup_fact :
+  forall l n r, exists v, supremum (T l n r) = Some v.
+Proof.
+  intros.
+  assert ((T l n r) <> E).
+  { pose proof classic ((T l n r) = E). destruct H;[inversion H|tauto]. }
+  apply sup_fact' in H. tauto.
+Qed.
+
 Lemma sup_property:
   forall lo hi t sup,
     SearchTree lo t hi ->
     supremum t = sup ->
-    optionZ_le sup hi.
+    optionZ_lt sup hi.
 Proof.
   intros.
   revert sup lo hi H H0.
@@ -405,7 +414,6 @@ Proof.
     { simpl in H0. subst.
       inversion H;subst.
       inversion H6;subst.
-      apply lt_le in H0.
       exact H0.
     }
     inversion H. subst lo0 l n1 r hi0.
@@ -443,7 +451,8 @@ Fixpoint infimum (t: tree): option Key:=
   | T l n r => infimum l
   end.
 
-Lemma inf_fact:
+
+Lemma inf_fact':
   forall t,
     t <> E ->
     exists v, infimum t = Some v.
@@ -463,11 +472,20 @@ Proof.
     exact H1.
 Qed.
 
+Lemma inf_fact :
+  forall l n r, exists v, infimum (T l n r) = Some v.
+Proof.
+  intros.
+  assert ((T l n r) <> E).
+  { pose proof classic ((T l n r) = E). destruct H;[inversion H|tauto]. }
+  apply inf_fact' in H. tauto.
+Qed.
+
 Lemma inf_property:
   forall lo hi t inf,
     SearchTree lo t hi ->
     infimum t = inf ->
-    optionZ_le lo inf.
+    optionZ_lt lo inf.
 Proof.
   intros.
   revert inf lo hi H H0.
@@ -477,7 +495,6 @@ Proof.
     { simpl in H0. subst.
       inversion H;subst.
       inversion H5;subst.
-      apply lt_le in H0.
       exact H0.
     }
     inversion H. subst lo0 l n1 r hi0.
@@ -508,85 +525,234 @@ Proof.
     exact IHt1.
 Qed.
 
-Lemma inner_border_tighter_nil_low:
-(*Need prerequisite: (Some LO) < (Some hi) *)
-  forall lo hi LO HI,
-    SearchTree_half_in lo [] (Some hi) ->
-    SearchTree_half_out (Some LO) [] (Some HI) ->
-    exists lo',
-      SearchTree_half_in (Some lo') [] (Some hi) /\
-      optionZ_le (Some LO) (Some lo').
+
+Inductive R_in: partial_tree -> half_tree -> Prop :=
+  | R_in_base: forall n r h, R_in ((R, n, r)::h) (R, n, r)
+  | R_in_forward: forall n n' l r h, R_in h (R, n, r) -> R_in ((L, n', l)::h) (R, n, r).
+
+Inductive all_L: partial_tree ->Prop :=
+  | AL_nil: all_L nil
+  | AL_forward: forall h n l, all_L h -> all_L ((L, n, l)::h).
+
+Lemma all_L_or_R_in: forall h, 
+  all_L h \/ exists n r, R_in h (R, n, r).
 Proof.
   intros.
-  inversion H0;subst.
-  destruct lo.
-  +
-Admitted.
+  induction h.
+  + left. constructor.
+  + destruct IHh.
+    - destruct a. destruct p. destruct l.
+      -- left. constructor. tauto.
+      -- right. exists n,t. constructor.
+    - right.
+      destruct H as [n [r ?]].
+      destruct a. destruct p. destruct l.
+      -- exists n, r. constructor; tauto.
+      -- exists n0, t. constructor.
+Qed.
 
-
-Lemma inner_border_expansion_L: 
-  forall lo hi LO HI n l (h:partial_tree),
-    optionZ_le (Some LO) (Some lo) ->
-    SearchTree_half_in (Some lo) ((L, n, l)::h) (Some hi) ->
-    SearchTree_half_out (Some LO) ((L, n, l)::h) (Some HI) ->
-    exists lo' ,
-      SearchTree_half_in (Some lo') h (Some hi) /\
-      SearchTree (Some lo') l (Some (key_of_node n)) /\
-      optionZ_le (Some LO) (Some lo').
+Lemma not_all_L_R_in: forall h,
+  ~ all_L h <-> exists n r, R_in h (R, n, r) .
 Proof.
   intros.
+  unfold iff;split;intros.
+  + pose proof all_L_or_R_in h.
+    destruct H0;tauto.
+  + pose proof classic (all_L h).
+    destruct H0;[|tauto].
+    destruct H as [n [r ?]].
+    induction H;intros. 
+    - inversion H0.
+    - inversion H0;subst. tauto.
+Qed.
+
+
+Lemma r_none_all_L: 
+  forall n l h,
+    SearchTree_half_in (Some (key_of_node n)) ((L, n, l) :: h) None ->
+    all_L ((L, n, l) :: h).
+Proof.
+  intros.
+  pose proof classic (all_L ((L, n, l) :: h)).
+  pose proof not_all_L_R_in ((L, n, l) :: h).
+  destruct H0;[tauto|].
+  assert (exists (n0 : Node) (r : tree), R_in ((L, n, l) :: h) (R, n0, r)) by tauto.
+  clear H0 H1.
+  destruct H2 as [n0 [r ?]].
   inversion H0;subst.
+  remember None as hi.
+  remember (R, n0, r) as ht.
+  revert n l H H0.
+  induction H2;intros;subst.
+  + inversion H;subst.
+    inversion H6;subst.
+  + inversion H;subst.
+    inversion H0;subst.
+    inversion H7;subst.
+    specialize (IHR_in Heqht _ _ H7 H4).
+    constructor. exact IHR_in.
+Qed.
+
+Lemma r_none_tighter: 
+  forall n l h hi,
+    optionZ_le (Some (key_of_node n)) hi ->
+    SearchTree_half_in (Some (key_of_node n)) ((L, n, l) :: h) None ->
+    SearchTree_half_in (Some (key_of_node n)) ((L, n, l) :: h) hi.
+Proof.
+  intros.
+  pose proof r_none_all_L _ _ _ H0.
   inversion H1;subst.
-  inversion H7;subst.
-  2:{ exists (key_of_node n0).
-      inversion H6;subst.
-      apply optionZ_lt_SearchTree in H15.
-      apply lt_le in H15.
-      split;[tauto|split;tauto]. }
-  { (* Need  *)
-    destruct l.
-    
-    (* { destruct lo0.
-      { exists k.
-      exists ((key_of_node n)-1). *)
-  
-  
-  
-  
-Admitted.
+  revert n l H H0 H1.
+  induction H3;intros.
+  + inversion H0;subst.
+    clear H2.
+    assert (SearchTree_half_in lo [] hi).
+    { constructor. apply optionZ_lt_SearchTree in H8.
+      pose proof optionZ_let_cong _ _ _ H H8. exact H2. }
+    Print SearchTree_half_in.
+    pose proof ST_in_cons_L _ _ _ _ _ H2 H8.
+    exact H3.
+  + inversion H0;subst.
+    inversion H8;subst.
+    inversion H1;subst.
+    pose proof optionZ_lt_SearchTree _ _ _ H9.
+    pose proof optionZ_let_cong _ _ _ H H4.
+    apply lt_le in H6.
+    specialize (IHall_L _ _ H6 H8 H5).
+    Print SearchTree_half_in.
+    pose proof ST_in_cons_L _ _ _ _ _ IHall_L H9.
+    exact H7.
+Qed.
 
-Lemma inner_border_expansion_R: 
-  forall lo hi LO HI n r (h:partial_tree),
-    optionZ_le (Some hi) (Some HI) ->
-    SearchTree_half_in (Some lo) ((R, n, r)::h) (Some hi) ->
-    SearchTree_half_out (Some LO) ((R, n, r)::h) (Some HI) ->
+Lemma all_L_r_some_tighter:
+  forall n l h hi k,
+    all_L ((L, n, l) :: h) ->
+    optionZ_le (Some (key_of_node n)) hi ->
+    SearchTree_half_in (Some (key_of_node n)) ((L, n, l) :: h) (Some k) ->
+    SearchTree_half_in (Some (key_of_node n)) ((L, n, l) :: h) hi.
+Proof.
+  intros.
+  inversion H;subst.
+  revert n l H0 H1 H.
+  induction H3;intros.
+  + inversion H1;subst.
+    assert (SearchTree_half_in lo [] hi).
+    { constructor. apply optionZ_lt_SearchTree in H8.
+      pose proof optionZ_let_cong _ _ _ H0 H8. exact H3. }
+    Print SearchTree_half_in.
+    pose proof ST_in_cons_L _ _ _ _ _ H3 H8.
+    exact H4.
+  + inversion H1;subst.
+    inversion H8;subst.
+    inversion H;subst.
+    pose proof optionZ_lt_SearchTree _ _ _ H9.
+    pose proof optionZ_let_cong _ _ _ H0 H4.
+    apply lt_le in H6.
+    specialize (IHall_L _ _ H6 H8 H5).
+    Print SearchTree_half_in.
+    pose proof ST_in_cons_L _ _ _ _ _ IHall_L H9.
+    exact H7.
+Qed.
+
+Lemma R_in_r_bound: 
+  forall n l n0 r0 h LO HI hi,
+    R_in ((L, n, l)::h) (R, n0, r0) ->
+    SearchTree_half_out (Some LO) ((L, n, l) :: h) (Some HI) ->
+    SearchTree_half_in (Some (key_of_node n)) ((L, n, l) :: h) hi ->
+    hi = (Some (key_of_node n0)) /\ optionZ_le hi (Some HI).
+Proof.
+  intros.
+  inversion H;subst.
+  clear H.
+  remember (R, n0, r0) as h_t.
+  revert n l H0 H1.
+  induction H3;intros.
+  + inversion H1;subst.
+    inversion H6;subst.
+    injection Heqh_t.
+    intros;subst.
+    inversion H0;subst.
+    inversion H8;subst.
+    apply optionZ_lt_SearchTree, lt_le in H15.
+    split;[reflexivity|exact H15].
+  + inversion H0;subst.
+    inversion H1;subst.
+    inversion H10;subst.
+    specialize (IHR_in Heqh_t _ _ H6 H10).
+    exact IHR_in.
+Qed.
+
+Lemma all_L_r_bound:
+  forall lt nt rt LO HI n l h k,
+    all_L ((L, n, l) :: h) ->
+    SearchTree (Some (key_of_node n)) (T lt nt rt) (Some HI) ->
+    SearchTree_half_out (Some LO) ((L, n, l) :: h) (Some HI) ->
+    SearchTree_half_in (Some (key_of_node n)) ((L, n, l) :: h) (Some k) ->
     exists hi',
-      SearchTree_half_in (Some lo) h (Some hi') /\
-      SearchTree (Some (key_of_node n)) r (Some hi') /\
+      SearchTree (Some (key_of_node n)) (T lt nt rt) (Some hi') /\
+      SearchTree_half_in (Some (key_of_node n)) ((L, n, l) :: h) (Some hi') /\
       optionZ_le (Some hi') (Some HI).
 Proof.
   intros.
-  inversion H0;subst.
-  { inversion H5;subst.
-    +
-Admitted.
+  pose proof sup_fact lt nt rt. destruct H3 as [sup ?].
+  exists (sup +1).
+  pose proof SearchTree_sup _ _ _ _ H0 H3.
+  split;[exact H4|split].
+  { inversion H4;subst.
+    apply optionZ_lt_SearchTree in H10. apply optionZ_lt_SearchTree in H11.
+    pose proof optionZ_lt_cong _ _ _ H11 H10. apply lt_le in H5.
+    pose proof all_L_r_some_tighter _ _ _ _ _ H H5 H2. exact H6. }
+  pose proof sup_property _ _ _ _ H0 H3.
+  apply lt_le'' in H5. exact H5.
+Qed.
+
+Lemma r_bound_None:
+  forall lt nt rt LO HI n l h,
+    SearchTree (Some (key_of_node n)) (T lt nt rt) (Some HI) ->
+    SearchTree_half_out (Some LO) ((L, n, l) :: h) (Some HI) ->
+    SearchTree_half_in (Some (key_of_node n)) ((L, n, l) :: h) None ->
+    exists hi',
+      SearchTree (Some (key_of_node n)) (T lt nt rt) (Some hi') /\
+      SearchTree_half_in (Some (key_of_node n)) ((L, n, l) :: h) (Some hi') /\
+      optionZ_le (Some hi') (Some HI).
+Proof.
+  intros.
+  pose proof sup_fact lt nt rt. destruct H2 as [sup ?].
+  exists (sup + 1).
+  pose proof SearchTree_sup _ _ _ _ H H2.
+  split;[exact H3|split].
+  { inversion H3;subst.
+    apply optionZ_lt_SearchTree in H9.
+    apply optionZ_lt_SearchTree in H10.
+    pose proof optionZ_lt_cong _ _ _ H10 H9.
+    apply lt_le in H4. pose proof r_none_tighter _ _ _ _ H4 H1. exact H5. }
+  Check sup_property.
+  pose proof sup_property _ _ _ _ H H2.
+  apply lt_le'' in H4. exact H4.
+Qed.
 
 Lemma inner_border_tighter_L:
-  forall n l h hi LO HI x t,
-    SearchTree (Some x) t hi ->
+  forall n l h hi LO HI lt nt rt,
+    SearchTree (Some (key_of_node n)) (T lt nt rt) hi ->
+    SearchTree (Some (key_of_node n)) (T lt nt rt) (Some HI) ->
     SearchTree_half_out (Some LO) ((L, n, l) :: h) (Some HI) ->
     SearchTree_half_in (Some (key_of_node n)) ((L, n, l) :: h) hi ->
     exists hi',
-      SearchTree (Some x) t (Some hi') /\
+      SearchTree (Some (key_of_node n)) (T lt nt rt) (Some hi') /\
       SearchTree_half_in (Some (key_of_node n)) ((L, n, l) :: h) (Some hi') /\
       optionZ_le (Some hi') (Some HI).
 Proof.
   intros.
   destruct hi.
-  2:{  
-  
-  
-Admitted.
+  2:{ pose proof r_bound_None _ _ _ _ _ _ _ _ H0 H1 H2. exact H3. }
+  pose proof all_L_or_R_in ((L, n, l)::h).
+  destruct H3;[|destruct H3 as [n0 [r ?]]].
+  2:{ pose proof R_in_r_bound _ _ _ _ _ _ _ _ H3 H1 H2.
+      destruct H4;injection H4;intros;subst.
+      exists (key_of_node n0). tauto. }
+  pose proof all_L_r_bound _ _ _ _ _ _ _ _ _ H3 H0 H1 H2. exact H4.
+Qed.
+    
 
 Lemma step_preserves: 
   forall h h' t t' lo hi LO HI,
@@ -614,6 +780,13 @@ Proof.
     inversion H9;subst.
     exists lo.  
     inversion H_h';subst.
+    3:{ exists (key_of_node n).
+        inversion H10;subst.
+        apply optionZ_lt_SearchTree , lt_le in H19.
+        split;[exact H|split;[exact H19|split]].
+        { inversion H_Tn1;subst.
+        constructor;try tauto;constructor;try tauto;constructor;try tauto. }
+        split;tauto. }
     - exists HI.
       split;[tauto|split;[simpl;lia|]].
       split;[|split;[|exact H10]].
@@ -624,15 +797,15 @@ Proof.
       apply optionZ_lt_SearchTree in H11.
       pose proof optionZ_lt_cong _ _ _ H11 H_Tn1.
       exact H5.
-    - destruct d.
-      { exists ((key_of_node n3) + 1).
-        split;[exact H|split].
-        { apply optionZ_lt_SearchTree, lt_le'' in H14. exact H14. }
-        split;[|split].
-        { inversion H_Tn1;subst. 
-          constructor;[tauto|constructor;[tauto|constructor;[tauto|]]].
-          constructor;simpl;lia. }
-        
+    - inversion H_Tn1;subst.
+      assert (SearchTree (Some (key_of_node n)) (T a n1 (T b n2 (T c n3 d))) hi).
+      { constructor;try tauto;constructor;try tauto;constructor;try tauto. }
+      assert (SearchTree (Some (key_of_node n)) (T a n1 (T b n2 (T c n3 d))) (Some HI)).
+      { constructor;try tauto;constructor;try tauto;constructor;try tauto. }
+      pose proof inner_border_tighter_L _ _ _ _ _ _ _ _ _ H3 H7 H10 H_h'.
+      destruct H13 as [hi' ?].
+      exists hi'. tauto.
+  +
 
 
     (* pose proof inner_border_expansion_R _ _ _ _ _ _ _ H0 H1 H2.
