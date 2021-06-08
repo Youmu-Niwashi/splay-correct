@@ -1424,6 +1424,44 @@ lia. }
     destruct H6.
     2:{ destruct H6 as [v1[? ? ]]. simpl in *. lia. }
       destruct H2. unfold combine. rewrite H1,H2,H6, H4,H. clear H1 H2 H6 H4 H. unfold relate_single. simpl in *. destruct (Z.eq_dec k (key_of_node n1));try lia. destruct (Z.eq_dec k (key_of_node n2));try lia. destruct (Z.eq_dec k (key_of_node n3));try lia. tauto.  }
+      destruct H2.   
+      2:{destruct H2 as [v[?[? ?] ]]. destruct H6.
+    2:{ destruct H6 as [v1[? ? ]]. simpl in *. lia. }
+      destruct H4. unfold combine. rewrite H1,H2,H6, H4,H. clear H1 H2 H6 H4 H. unfold relate_single. simpl in *. destruct (Z.eq_dec k (key_of_node n1));try lia. destruct (Z.eq_dec k (key_of_node n2));try lia. destruct (Z.eq_dec k (key_of_node n3));try lia. tauto.  }
+      destruct H6;destruct H4;destruct H2.
+      1:{unfold combine. rewrite H1,H2,H6, H4,H. clear H1 H2 H6 H4 H. simpl in *. unfold relate_single. destruct (Z.eq_dec k (key_of_node n1)).
+      1:{ destruct (Z.eq_dec k (key_of_node n2));try lia. destruct (Z.eq_dec k (key_of_node n3));try lia. tauto. }
+    destruct (Z.eq_dec k (key_of_node n2)). 1:{ destruct (Z.eq_dec k (key_of_node n3));try lia. tauto. } destruct (Z.eq_dec k (key_of_node n3));try tauto. }
+    destruct H6 as [v[? ?]]. destruct H10;simpl in *;
+   unfold combine; rewrite H1,H2,H6, H4,H; clear H1 H2 H6 H4 H; simpl in *; unfold relate_single;  destruct (Z.eq_dec k (key_of_node n1));try lia; destruct (Z.eq_dec k (key_of_node n2));try lia; destruct (Z.eq_dec k (key_of_node n3));try lia; tauto. 
+ + inversion H0;subst. inversion H1;subst. inversion H18;subst. exists m2.  exists (combine(combine(combine m1(combine (relate_single(key_of_node n1)(value_of_node n1)) m0))(combine(relate_single(key_of_node n2)(value_of_node n2)) lm)) (combine (relate_single(key_of_node n3)(value_of_node n3)) rm)).  split ;try tauto. split ;try tauto. split ;try tauto. split ;try tauto. split ;try tauto. split ;try tauto. split. constructor;try tauto. constructor;try tauto.  constructor;try tauto. intros.  clear H7 H8 H11 H5 H6 H3 H4 H H0 H18 H1. inversion H9;subst;clear H9. inversion H5;subst;clear H5. inversion H7;subst;clear H7. pose proof Abs_in _ _ _ _ H21 H5 k; pose proof optionZ_lt_SearchTree _ _ _ H5; clear H21 H5.  pose proof Abs_in _ _ _ _ H17 H9 k; pose proof optionZ_lt_SearchTree _ _ _ H9; clear H17 H9. pose proof Abs_in _ _ _ _ H16 H8 k; pose proof optionZ_lt_SearchTree _ _ _ H8; clear H16 H8. clear H2. pose proof Abs_in _ _ _ _ H19 H6 k; clear H19 H6.
+pose proof Abs_in_half _ _ _ _ H22 H10 k; clear H22 H10.  destruct H. 
+2:{ destruct H1. 
+    2:{ destruct H as [v[?[? ? ]]]. destruct H1 as [v1[?[? ? ]]]. simpl in H9. simpl in H8. 
+lia. }
+    destruct H4.
+    2:{ destruct H as [v[?[? ? ]]]. destruct H4 as [v1[?[? ? ]]]. simpl in *.  lia. }
+    destruct H2.
+    2:{ destruct H as [v[?[? ? ]]]. destruct H2 as [v1[?[? ? ]]]. simpl in *.  lia. }
+    destruct H6; destruct H1;destruct H4;destruct H2.  
+    2:{ destruct H as [v[?[? ? ]]]. destruct H6 as [v1[? ?]]. simpl in *. lia. }
+    destruct H as[v[?[? ?]]]. unfold combine.  rewrite H1, H4,H2,H6,H. clear H1 H2 H4 H6 H. unfold relate_single. simpl in *. destruct (Z.eq_dec k (key_of_node n1));try lia. destruct (Z.eq_dec k (key_of_node n2));try lia. destruct (Z.eq_dec k (key_of_node n3));try lia. tauto.  }
+          destruct H. clear H7. 
+      destruct H1.
+  2:{ destruct H1 as [v[?[? ? ]]]. destruct H4.
+    2:{ destruct H4 as [v1[?[? ? ]]]. simpl in *.  lia. }
+    destruct H2.
+    2:{destruct H2 as [v1[?[? ? ]]]. simpl in *.  lia. }
+    destruct H6.
+    2:{ destruct H6 as [v1[? ? ]]. simpl in *. lia. }
+      destruct H4;destruct H2. unfold combine. rewrite H1, H4,H2,H6,H. clear H1 H2 H4 H6 H. unfold relate_single. simpl in *. destruct (Z.eq_dec k (key_of_node n1));try lia. destruct (Z.eq_dec k (key_of_node n2));try lia. destruct (Z.eq_dec k (key_of_node n3));try lia. tauto.  }
+      destruct H1. 
+      destruct H4.
+    2:{ destruct H4 as [v[?[? ? ]]].  destruct H2.
+    2:{destruct H2 as [v1[?[? ? ]]]. simpl in *.  lia. }
+    destruct H6.
+    2:{ destruct H6 as [v1[? ? ]]. simpl in *. lia. }
+      destruct H2. unfold combine. rewrite H1,H2,H6, H4,H. clear H1 H2 H6 H4 H. unfold relate_single. simpl in *. destruct (Z.eq_dec k (key_of_node n1));try lia. destruct (Z.eq_dec k (key_of_node n2));try lia. destruct (Z.eq_dec k (key_of_node n3));try lia. tauto.  }
       destruct H2.  
       2:{destruct H2 as [v[?[? ?] ]]. destruct H6.
     2:{ destruct H6 as [v1[? ? ]]. simpl in *. lia. }
@@ -1434,11 +1472,116 @@ lia. }
     destruct (Z.eq_dec k (key_of_node n2)). 1:{ destruct (Z.eq_dec k (key_of_node n3));try lia. tauto. } destruct (Z.eq_dec k (key_of_node n3));try tauto. }
     destruct H6 as [v[? ?]]. destruct H10;simpl in *;
    unfold combine; rewrite H1,H2,H6, H4,H; clear H1 H2 H6 H4 H; simpl in *; unfold relate_single;  destruct (Z.eq_dec k (key_of_node n1));try lia; destruct (Z.eq_dec k (key_of_node n2));try lia; destruct (Z.eq_dec k (key_of_node n3));try lia; tauto. 
- +    
-(* destruct H0;destruct H1;destruct H2;destruct H3.
-1:{ unfold combine;rewrite H3, H, H2, H1. unfold relate_single. destruct (Z.eq_dec k (key_of_node n1)). rewrite H0.
- *)
-  Admitted.
++  inversion H0;subst. inversion H1;subst. inversion H18;subst. exists m2.  exists (combine(combine m0 (combine (relate_single(key_of_node n1)(value_of_node n1)) lm))(combine(relate_single(key_of_node n2)(value_of_node n2))(combine rm (combine(relate_single(key_of_node n3)(value_of_node n3)) m1)))). split ;try tauto. split ;try tauto. split ;try tauto. split ;try tauto. split ;try tauto. split ;try tauto. split. constructor;try tauto. constructor;try tauto.  constructor;try tauto. intros.  clear H7 H8 H11 H5 H6 H3 H4 H H0 H18 H1. inversion H9;subst;clear H9. inversion H5;subst;clear H5. inversion H6;subst;clear H6. pose proof Abs_in _ _ _ _ H21 H9 k; pose proof optionZ_lt_SearchTree _ _ _ H9; clear H21 H9.  pose proof Abs_in _ _ _ _ H17 H7 k; pose proof optionZ_lt_SearchTree _ _ _ H7; clear H17 H7. pose proof Abs_in _ _ _ _ H16 H8 k; pose proof optionZ_lt_SearchTree _ _ _ H8; clear H16 H8. clear H2. pose proof Abs_in _ _ _ _ H19 H5 k; pose proof optionZ_lt_SearchTree _ _ _ H5; clear H19 H5.
+pose proof Abs_in_half _ _ _ _ H22 H10 k; clear H22 H10.  destruct H. 
+2:{ destruct H1. 
+    2:{ destruct H as [v[?[? ? ]]]. destruct H1 as [v1[?[? ? ]]]. simpl in *. lia. }
+    destruct H4.
+    2:{ destruct H as [v[?[? ? ]]]. destruct H4 as [v1[?[? ? ]]]. simpl in *.  lia. }
+    destruct H2.
+    2:{ destruct H as [v[?[? ? ]]]. destruct H2 as [v1[?[? ? ]]]. simpl in *.  lia. }
+    destruct H5; destruct H1;destruct H4;destruct H2.  
+    2:{ destruct H as [v[?[? ? ]]]. destruct H5 as [v1[? ?]]. simpl in *. lia. }
+    destruct H as[v[?[? ?]]]. unfold combine.  rewrite H1, H4,H2,H5,H. clear H1 H2 H4 H5 H. unfold relate_single. simpl in *. destruct (Z.eq_dec k (key_of_node n1));try lia. destruct (Z.eq_dec k (key_of_node n2));try lia. destruct (Z.eq_dec k (key_of_node n3));try lia. tauto.  }
+          destruct H. clear H8. 
+      destruct H1.
+  2:{ destruct H1 as [v[?[? ? ]]]. destruct H4.
+    2:{ destruct H4 as [v1[?[? ? ]]]. simpl in *.  lia. }
+    destruct H2.
+    2:{destruct H2 as [v1[?[? ? ]]]. simpl in *.  lia. }
+    destruct H5.
+    2:{ destruct H5 as [v1[? ? ]]. simpl in *. lia. }
+      destruct H4;destruct H2. unfold combine. rewrite H1, H4,H2,H5,H. clear H1 H2 H4 H5 H. unfold relate_single. simpl in *. destruct (Z.eq_dec k (key_of_node n1));try lia. destruct (Z.eq_dec k (key_of_node n2));try lia. destruct (Z.eq_dec k (key_of_node n3));try lia. tauto.  }
+      destruct H1. 
+      destruct H4.
+    2:{ destruct H4 as [v[?[? ? ]]].  destruct H2.
+    2:{destruct H2 as [v1[?[? ? ]]]. simpl in *.  lia. }
+    destruct H5.
+    2:{ destruct H5 as [v1[? ? ]]. simpl in *. lia. }
+      destruct H2. unfold combine. rewrite H1,H2,H5, H4,H. clear H1 H2 H5 H4 H. unfold relate_single. simpl in *. destruct (Z.eq_dec k (key_of_node n1));try lia. destruct (Z.eq_dec k (key_of_node n2));try lia. destruct (Z.eq_dec k (key_of_node n3));try lia. tauto.  }
+      destruct H2.  
+      2:{destruct H2 as [v[?[? ?] ]]. destruct H5.
+    2:{ destruct H5 as [v1[? ? ]]. simpl in *. lia. }
+      destruct H4. unfold combine. rewrite H1,H2,H5, H4,H. clear H1 H2 H5 H4 H. unfold relate_single. simpl in *. destruct (Z.eq_dec k (key_of_node n1));try lia. destruct (Z.eq_dec k (key_of_node n2));try lia. destruct (Z.eq_dec k (key_of_node n3));try lia. tauto.  }
+      destruct H5;destruct H4;destruct H2.
+      1:{unfold combine. rewrite H1,H2,H5, H4,H. clear H1 H2 H5 H4 H. simpl in *. unfold relate_single. destruct (Z.eq_dec k (key_of_node n1)).
+      1:{ destruct (Z.eq_dec k (key_of_node n2));try lia. destruct (Z.eq_dec k (key_of_node n3));try lia. tauto. }
+    destruct (Z.eq_dec k (key_of_node n2)). 1:{ destruct (Z.eq_dec k (key_of_node n3));try lia. tauto. } destruct (Z.eq_dec k (key_of_node n3));try tauto. }
+    destruct H5 as [v[? ?]]. destruct H10;simpl in *;
+   unfold combine; rewrite H1,H2,H5, H4,H; clear H1 H2 H5 H4 H; simpl in *; unfold relate_single;  destruct (Z.eq_dec k (key_of_node n1));try lia; destruct (Z.eq_dec k (key_of_node n2));try lia; destruct (Z.eq_dec k (key_of_node n3));try lia; tauto. 
++ inversion H0;subst. inversion H1;subst. inversion H18;subst. exists m2.  exists (combine (combine m1 (combine(relate_single(key_of_node n1)(value_of_node n1)) lm))(combine (relate_single(key_of_node n2)(value_of_node n2))(combine rm (combine(relate_single(key_of_node n3)(value_of_node n3)) m0)))). split ;try tauto. split ;try tauto. split ;try tauto. split ;try tauto. split ;try tauto. split ;try tauto. split. constructor;try tauto. constructor;try tauto.  constructor;try tauto. intros.  clear H7 H8 H11 H5 H6 H3 H4 H H0 H18 H1. inversion H9;subst;clear H9. inversion H5;subst;clear H5. inversion H6;subst;clear H6. pose proof Abs_in _ _ _ _ H17 H9 k; pose proof optionZ_lt_SearchTree _ _ _ H9; clear H17 H9.  pose proof Abs_in _ _ _ _ H21 H7 k; pose proof optionZ_lt_SearchTree _ _ _ H7; clear H21 H7. pose proof Abs_in _ _ _ _ H16 H8 k; pose proof optionZ_lt_SearchTree _ _ _ H8; clear H16 H8. clear H2. pose proof Abs_in _ _ _ _ H19 H5 k; pose proof optionZ_lt_SearchTree _ _ _ H5; clear H19 H5.
+pose proof Abs_in_half _ _ _ _ H22 H10 k; clear H22 H10.  destruct H. 
+2:{ destruct H1. 
+    2:{ destruct H as [v[?[? ? ]]]. destruct H1 as [v1[?[? ? ]]]. simpl in *. lia. }
+    destruct H4.
+    2:{ destruct H as [v[?[? ? ]]]. destruct H4 as [v1[?[? ? ]]]. simpl in *.  lia. }
+    destruct H2.
+    2:{ destruct H as [v[?[? ? ]]]. destruct H2 as [v1[?[? ? ]]]. simpl in *.  lia. }
+    destruct H5; destruct H1;destruct H4;destruct H2.  
+    2:{ destruct H as [v[?[? ? ]]]. destruct H5 as [v1[? ?]]. simpl in *. lia. }
+    destruct H as[v[?[? ?]]]. unfold combine.  rewrite H1, H4,H2,H5,H. clear H1 H2 H4 H5 H. unfold relate_single. simpl in *. destruct (Z.eq_dec k (key_of_node n1));try lia. destruct (Z.eq_dec k (key_of_node n2));try lia. destruct (Z.eq_dec k (key_of_node n3));try lia. tauto.  }
+          destruct H. clear H8. 
+      destruct H1.
+  2:{ destruct H1 as [v[?[? ? ]]]. destruct H4.
+    2:{ destruct H4 as [v1[?[? ? ]]]. simpl in *.  lia. }
+    destruct H2.
+    2:{destruct H2 as [v1[?[? ? ]]]. simpl in *.  lia. }
+    destruct H5.
+    2:{ destruct H5 as [v1[? ? ]]. simpl in *. lia. }
+      destruct H4;destruct H2. unfold combine. rewrite H1, H4,H2,H5,H. clear H1 H2 H4 H5 H. unfold relate_single. simpl in *. destruct (Z.eq_dec k (key_of_node n1));try lia. destruct (Z.eq_dec k (key_of_node n2));try lia. destruct (Z.eq_dec k (key_of_node n3));try lia. tauto.  }
+      destruct H1. 
+      destruct H4.
+    2:{ destruct H4 as [v[?[? ? ]]].  destruct H2.
+    2:{destruct H2 as [v1[?[? ? ]]]. simpl in *.  lia. }
+    destruct H5.
+    2:{ destruct H5 as [v1[? ? ]]. simpl in *. lia. }
+      destruct H2. unfold combine. rewrite H1,H2,H5, H4,H. clear H1 H2 H5 H4 H. unfold relate_single. simpl in *. destruct (Z.eq_dec k (key_of_node n1));try lia. destruct (Z.eq_dec k (key_of_node n2));try lia. destruct (Z.eq_dec k (key_of_node n3));try lia. tauto.  }
+      destruct H2.  
+      2:{destruct H2 as [v[?[? ?] ]]. destruct H5.
+    2:{ destruct H5 as [v1[? ? ]]. simpl in *. lia. }
+      destruct H4. unfold combine. rewrite H1,H2,H5, H4,H. clear H1 H2 H5 H4 H. unfold relate_single. simpl in *. destruct (Z.eq_dec k (key_of_node n1));try lia. destruct (Z.eq_dec k (key_of_node n2));try lia. destruct (Z.eq_dec k (key_of_node n3));try lia. tauto.  }
+      destruct H5;destruct H4;destruct H2.
+      1:{unfold combine. rewrite H1,H2,H5, H4,H. clear H1 H2 H5 H4 H. simpl in *. unfold relate_single. destruct (Z.eq_dec k (key_of_node n1)).
+      1:{ destruct (Z.eq_dec k (key_of_node n2));try lia. destruct (Z.eq_dec k (key_of_node n3));try lia. tauto. }
+    destruct (Z.eq_dec k (key_of_node n2)). 1:{ destruct (Z.eq_dec k (key_of_node n3));try lia. tauto. } destruct (Z.eq_dec k (key_of_node n3));try tauto. }
+    destruct H5 as [v[? ?]]. destruct H10;simpl in *;
+   unfold combine; rewrite H1,H2,H5, H4,H; clear H1 H2 H5 H4 H; simpl in *; unfold relate_single;  destruct (Z.eq_dec k (key_of_node n1));try lia; destruct (Z.eq_dec k (key_of_node n2));try lia; destruct (Z.eq_dec k (key_of_node n3));try lia; tauto. 
++ inversion H1;subst;clear H1. inversion H0;subst;clear H0. inversion H19;subst;clear H19. exists relate_default. exists (combine lm (combine (relate_single (key_of_node n1)(value_of_node n1)) (combine rm (combine (relate_single(key_of_node n2)(value_of_node n2)) m0)))).  split ;try tauto. split ;try tauto. split ;try tauto. split ;try tauto. split ;try tauto. split ;try tauto. constructor. split. constructor;try tauto. constructor;try tauto. inversion H9;subst;clear H9. inversion H19;subst;clear H19. intros. clear H H4 H3 H5 H6 H7 H8 H11 H10. pose proof Abs_in _ _ _ _ H16 H15 k; pose proof optionZ_lt_SearchTree _ _ _ H15; clear H16 H15.  pose proof Abs_in _ _ _ _ H17 H14 k; pose proof optionZ_lt_SearchTree _ _ _ H14; clear H17 H14. pose proof Abs_in _ _ _ _ H18 H20 k; pose proof optionZ_lt_SearchTree _ _ _ H20; clear H18 H20. clear H2. destruct H. 
+2:{ destruct H1. 
+    2:{ destruct H as [v[?[? ? ]]]. destruct H1 as [v1[?[? ? ]]]. simpl in *. lia. }
+    destruct H4.
+    2:{ destruct H as [v[?[? ? ]]]. destruct H2 as [v1[?[? ? ]]]. simpl in *.  lia. }
+    destruct H as[v[?[? ?]]]. unfold combine. destruct H1;destruct H2;clear H8.  rewrite H1, H2,H. clear H1 H2 H. unfold relate_single. simpl in *. destruct (Z.eq_dec k (key_of_node n1));try lia. destruct (Z.eq_dec k (key_of_node n2));try lia.  tauto.  }
+          destruct H. clear H2. 
+      destruct H1.
+  2:{ destruct H1 as [v[?[? ? ]]]. destruct H4.
+    2:{ destruct H4 as [v1[?[? ? ]]]. simpl in *.  lia. }     
+      destruct H4. unfold combine. clear H7. rewrite H1, H4,H. clear H1 H4 H. unfold relate_single. simpl in *. destruct (Z.eq_dec k (key_of_node n1));try lia. destruct (Z.eq_dec k (key_of_node n2));try lia. tauto.  }
+      destruct H1. 
+      destruct H4.
+    2:{ destruct H4 as [v[?[? ? ]]]. unfold combine,relate_single.  rewrite H1,H4,H. clear H1 H4 H.  simpl in *. destruct (Z.eq_dec k (key_of_node n1));try lia. destruct (Z.eq_dec k (key_of_node n2));try lia.  tauto.  }
+      destruct H4. unfold combine. clear H6. rewrite H1, H4,H. clear H1 H4 H. unfold relate_single. simpl in *. destruct (Z.eq_dec k (key_of_node n1)). 
+      1:{  destruct (Z.eq_dec k (key_of_node n2));try lia. tauto.  }
+      destruct (Z.eq_dec k (key_of_node n2));try tauto. 
++ inversion H1;subst;clear H1. inversion H0;subst;clear H0. inversion H19;subst;clear H19. exists relate_default. exists (combine (combine m0 (combine (relate_single(key_of_node n1)(value_of_node n1)) lm))(combine(relate_single (key_of_node n2)(value_of_node n2)) rm)).  split ;try tauto. split ;try tauto. split ;try tauto. split ;try tauto. split ;try tauto. split ;try tauto. constructor. split. constructor;try tauto. constructor;try tauto. inversion H9;subst;clear H9. inversion H15;subst;clear H15. intros. clear H H4 H3 H5 H6 H7 H8 H11 H10. pose proof Abs_in _ _ _ _ H16 H20 k; pose proof optionZ_lt_SearchTree _ _ _ H20; clear H16 H20.  pose proof Abs_in _ _ _ _ H17 H19 k; pose proof optionZ_lt_SearchTree _ _ _ H19; clear H17 H19. pose proof Abs_in _ _ _ _ H18 H14 k; pose proof optionZ_lt_SearchTree _ _ _ H14; clear H18 H14. clear H2. destruct H. 
+2:{ destruct H1. 
+    2:{ destruct H as [v[?[? ? ]]]. destruct H1 as [v1[?[? ? ]]]. simpl in *. lia. }
+    destruct H4.
+    2:{ destruct H as [v[?[? ? ]]]. destruct H2 as [v1[?[? ? ]]]. simpl in *.  lia. }
+    destruct H as[v[?[? ?]]]. unfold combine. destruct H1;destruct H2;clear H8.  rewrite H1, H2,H. clear H1 H2 H. unfold relate_single. simpl in *. destruct (Z.eq_dec k (key_of_node n1));try lia. destruct (Z.eq_dec k (key_of_node n2));try lia.  tauto.  }
+          destruct H. clear H2. 
+      destruct H1.
+  2:{ destruct H1 as [v[?[? ? ]]]. destruct H4.
+    2:{ destruct H4 as [v1[?[? ? ]]]. simpl in *.  lia. }     
+      destruct H4. unfold combine. clear H7. rewrite H1, H4,H. clear H1 H4 H. unfold relate_single. simpl in *. destruct (Z.eq_dec k (key_of_node n1));try lia. destruct (Z.eq_dec k (key_of_node n2));try lia. tauto.  }
+      destruct H1. 
+      destruct H4.
+    2:{ destruct H4 as [v[?[? ? ]]]. unfold combine,relate_single.  rewrite H1,H4,H. clear H1 H4 H.  simpl in *. destruct (Z.eq_dec k (key_of_node n1));try lia. destruct (Z.eq_dec k (key_of_node n2));try lia.  tauto.  }
+      destruct H4. unfold combine. clear H6. rewrite H1, H4,H. clear H1 H4 H. unfold relate_single. simpl in *. destruct (Z.eq_dec k (key_of_node n1)). 
+      1:{  destruct (Z.eq_dec k (key_of_node n2));try lia. tauto.  }
+      destruct (Z.eq_dec k (key_of_node n2));try tauto. 
+      Qed.
+
  
 Lemma combine_default:
   forall m ,
@@ -1465,8 +1608,7 @@ Proof.
   revert m1 m2 lo hi LO HI.
   induction_1n H1;intros.
   + inversion H;subst.
-  (* pose proof map_eq. m2 relate_default m2 H1.  *)
-    pose proof combine_default m2 . pose proof map_eq _ _ H1. (* rewrite <-H7 in H9. *) rewrite <-H7. tauto.
+    pose proof combine_default m2 . pose proof map_eq _ _ H1. rewrite <-H7. tauto.
   + 
   pose proof step_correct_le _ _ _ _ _ _ _ _ _ _ H H1 H2 H3 H4 H5 H6 H7.
   destruct H8 as [lo' [hi'[LO'[HI'[m1'[m2'[?[?[?[?[?[?[? ?]]]]]]]]]]]]].
@@ -1480,5 +1622,5 @@ pose proof lt_le _ _ H6. pose proof lt_le _ _ H5.
 pose proof correct_le _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3 H4 H8 H7. tauto. 
 Qed.
 
-
-(* 2021-05-07 20:39 *)
+(* Long may the sun shine! *)
+(* 2021-06-08 22:13 *)
