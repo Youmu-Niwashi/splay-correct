@@ -4,6 +4,7 @@ Require Import PL.RTClosure.
 Import ListNotations.
 Local Open Scope Z.
 Require Import PL.Imp.
+Require Import FunctionalExtensionality.
 
 (** Splay tree is a kind of self-balanced binary search tree. You may learn this
     data structure from online resources like:
@@ -64,7 +65,7 @@ Definition combine (m1 m2: relate_map): relate_map :=
     end.
 
 Inductive Abs : tree -> relate_map -> Prop :=
-| Abs_E : forall m, (forall k, m k = relate_default k) -> Abs E m
+| Abs_E :  Abs E relate_default
 | Abs_T: forall l n r lm rm,
     Abs l lm ->
     Abs r rm ->
@@ -115,7 +116,7 @@ Proof.
 Qed.
 
 Inductive Abs_half : partial_tree -> relate_map -> Prop :=
-| Abs_half_nil : forall m, (forall k, m k = relate_default k) -> Abs_half nil m
+| Abs_half_nil : Abs_half nil relate_default
 | Abs_half_cons: forall LR n t h m1 m2,
     Abs t m1 ->
     Abs_half h m2 ->
@@ -178,10 +179,15 @@ Definition preserves: Prop :=
     SearchTree (Some LO) t' (Some HI).
 
 Definition correct: Prop :=
-  forall h t t' m1 m2,
+  forall h t t' m1 m2 lo hi LO HI,
     Abs_half h m1 ->
     Abs t m2 ->
     splay h t t' ->
+    SearchTree (Some lo) t (Some hi)->(* new *)
+    SearchTree_half_in (Some lo) h (Some hi)->(* new *)
+    SearchTree_half_out (Some LO) h (Some HI)->(* new *)
+    optionZ_lt (Some LO) (Some lo) ->
+    optionZ_lt (Some hi) (Some HI) ->
     Abs t' (combine m1 m2).
 
 Definition splay' :partial_tree * tree -> partial_tree * tree -> Prop :=
@@ -1186,6 +1192,13 @@ Qed.
 (* ===================== Proof of correct =====================*)
 (* ============================================================*)
 
+Lemma map_eq: forall lm rm: relate_map,
+(forall k , lm k = rm k)->
+lm=rm.
+Proof.
+intros.
+extensionality k. apply H. 
+Qed.
 
 Lemma combine_com: 
   forall m1 m2,
@@ -1196,107 +1209,276 @@ Proof.
   destruct (m1 k);destruct (m2 k);reflexivity.
 Qed.
 
-Lemma combine_asso:
-  forall m1 m2 m3, 
-    forall k, combine m1 (combine m2 m3) k = combine (combine m1 m2) m3 k.
+
+Lemma Abs_in:
+forall t lo hi m,
+Abs t m->
+SearchTree lo t hi->
+forall k, (m k= None/\ optionZ_lt lo hi) \/ (exists v, m k =Some v /\  optionZ_lt lo (Some k) /\ optionZ_lt (Some k) hi).
+Proof.
+intros. revert H k. revert m. induction H0;subst.
+intros.
+inversion H0;subst. left. tauto. 
+intros. inversion H;subst. specialize (IHSearchTree1 lm H4 k). specialize (IHSearchTree2 rm H5 k). destruct IHSearchTree1; destruct IHSearchTree2; pose proof combine_com (relate_single (key_of_node n) (value_of_node n)) rm;
+pose proof map_eq _ _ H2; rewrite H3; unfold combine .
++ destruct H0;rewrite H0;destruct H1; rewrite H1;  unfold relate_single. destruct (Z.eq_dec k (key_of_node n)). right.  pose proof optionZ_lt_SearchTree _ _ _ H0_. pose proof optionZ_lt_SearchTree _ _ _ H0_0. pose proof lt_le _ _ H8. pose proof lt_le _ _ H9. rewrite e. exists (value_of_node n).  split;tauto. left. split. tauto. pose proof optionZ_lt_cong _ _ _ H7 H6. tauto.   
++ destruct H0; rewrite H0. destruct H1 as[v[?[? ?]]]. rewrite H1. assert ((key_of_node n)<> k). simpl in H7. lia.   unfold relate_single. destruct (Z.eq_dec k (key_of_node n)). rewrite e in H9. tauto.  right. exists v. split;[reflexivity| ]. split. pose proof optionZ_lt_SearchTree _ _ _ H0_. pose proof optionZ_lt_cong _ _ _ H7 H10. tauto. tauto.
++ destruct H0 as[v[?[? ?]]]. destruct H1. rewrite H0. rewrite H1. assert ((key_of_node n)<> k). simpl in H7. lia.   unfold relate_single. destruct (Z.eq_dec k (key_of_node n)). rewrite e in H9. tauto. right. exists v. split;[reflexivity| ]. split. tauto. pose proof optionZ_lt_SearchTree _ _ _ H0_0. pose proof optionZ_lt_cong _ _ _ H10 H7.  tauto.
++ destruct H0 as[vl[?[? ?]]]. destruct H1 as[vr[?[? ?]]]. simpl in H7. simpl in H8. lia.
+  Qed.
+
+Lemma l_none_le:
+  forall n r h m k v,
+  SearchTree_half_in None ((R, n, r) :: h) (Some (key_of_node n)) ->
+  Abs_half ((R, n, r) :: h) m ->
+  m k = Some v ->
+  optionZ_le (Some (key_of_node n)) (Some k).
 Proof.
   intros.
-  unfold combine.
-  destruct (m1 k) eqn:H1;destruct (m2 k) eqn:H2;destruct (m3 k) eqn:H3. try reflexivity.
-Admitted.
+  pose proof l_none_all_R _ _ _ H.
+  inversion H2;subst. clear H2.
+  revert n r m v H H0 H1.
+  induction H4;subst;intros.
+  + inversion H0;subst.
+    inversion H8;subst. clear H8.
+    inversion H;subst. clear H5.
+    inversion H8;subst.
+    { inversion H7;subst. assert( relate_default k = None ) by (unfold relate_default;reflexivity). assert((relate_single (key_of_node n) (value_of_node n) k) = Some v). { destruct (relate_single (key_of_node n) (value_of_node n) k) eqn:?H. { unfold combine in H1;rewrite H3 in H1;rewrite H4 in H1. exact H1. } unfold combine in H1;rewrite H3 in H1;rewrite H4 in H1. discriminate H1. } unfold relate_single in H4. assert(k=(key_of_node n)).  { destruct(Z.eq_dec k (key_of_node n)). tauto. discriminate H4. } rewrite H5. simpl. simpl. lia. }
+    pose proof Abs_in _ _ _ _ H7 H8. specialize (H4 k).
+    destruct H4.
+    { destruct H4.
+      assert( relate_default k = None ) by (unfold relate_default;reflexivity). assert((relate_single (key_of_node n) (value_of_node n) k) = Some v). { destruct (relate_single (key_of_node n) (value_of_node n) k) eqn:?H. { unfold combine in H1;rewrite H4 in H1;rewrite H9 in H1;rewrite H6 in H1. exact H1. } unfold combine in H1;rewrite H4 in H1;rewrite H9 in H1;rewrite H6 in H1. discriminate H1. } unfold relate_single in H9. assert(k=(key_of_node n)).  { destruct(Z.eq_dec k (key_of_node n)). tauto. discriminate H9. } rewrite H10. simpl. simpl. lia. }
+    destruct H4 as [? [? [? ?]]]. apply lt_le in H5. exact H5.
   
-Lemma step_correct: 
-  forall h t h' t' m1 m2 ,
+  + inversion H;subst. 
+    inversion H0;subst.
+    specialize (IHall_R n r m2).
+    pose proof Abs_in _ _ _ _ H10 H8.
+    specialize (H2 k). 
+    destruct H2.
+    2:{ destruct H2 as [? [? [? ?]]]. apply lt_le in H3. exact H3. }
+    destruct H2.
+    destruct ((relate_single (key_of_node n0) (value_of_node n0)) k) eqn:?H. 
+    { unfold relate_single in H5. assert (k=(key_of_node n0)). { destruct (Z.eq_dec k (key_of_node n0)). tauto. discriminate H5. } rewrite H7. simpl. simpl. lia. }
+    assert (m2 k = Some v). { unfold combine in H1; rewrite H2 in H1; rewrite H5 in H1. destruct (m2 k);[ exact H1| discriminate H1]. }
+    clear H1.
+    inversion H6;subst.
+    specialize (IHall_R v H6 H11 H7).
+    pose proof optionZ_let_cong _ _ _ IHall_R H3.
+    apply lt_le in H1; exact H1.
+Qed.
+
+Lemma r_none_le:
+  forall n l h m k v,
+  SearchTree_half_in (Some (key_of_node n)) ((L, n, l) :: h) None ->
+  Abs_half ((L, n, l) :: h) m ->
+  m k = Some v ->
+  optionZ_le (Some k) (Some (key_of_node n)).
+Proof.
+  intros.
+  pose proof r_none_all_L _ _ _ H.
+  inversion H2;subst. clear H2.
+  revert n l m v H H0 H1.
+  induction H4;subst;intros.
+  + inversion H0;subst.
+    inversion H8;subst. clear H8.
+    inversion H;subst. clear H2. clear H8.
+    inversion H9;subst.
+    { inversion H7;subst. assert( relate_default k = None ) by (unfold relate_default;reflexivity). assert((relate_single (key_of_node n) (value_of_node n) k) = Some v). { destruct (relate_single (key_of_node n) (value_of_node n) k) eqn:?H. { unfold combine in H1;rewrite H3 in H1;rewrite H4 in H1. exact H1. } unfold combine in H1;rewrite H3 in H1;rewrite H4 in H1. discriminate H1. } unfold relate_single in H4. assert(k=(key_of_node n)).  { destruct(Z.eq_dec k (key_of_node n)). tauto. discriminate H4. } rewrite H5. simpl. simpl. lia. }
+    pose proof Abs_in _ _ _ _ H7 H9. specialize (H4 k).
+    destruct H4.
+    { destruct H4.
+      assert( relate_default k = None ) by (unfold relate_default;reflexivity). assert((relate_single (key_of_node n) (value_of_node n) k) = Some v). { destruct (relate_single (key_of_node n) (value_of_node n) k) eqn:?H. { unfold combine in H1;rewrite H4 in H1;rewrite H8 in H1;rewrite H6 in H1. exact H1. } unfold combine in H1;rewrite H4 in H1;rewrite H8 in H1;rewrite H6 in H1. discriminate H1. } unfold relate_single in H8. assert(k=(key_of_node n)).  { destruct(Z.eq_dec k (key_of_node n)). tauto. discriminate H8. } rewrite H10. simpl. simpl. lia. }
+    destruct H4 as [? [? [? ?]]]. apply lt_le in H6. exact H6.
+  
+  + inversion H;subst. clear H2. 
+    inversion H0;subst.
+    specialize (IHall_L n l m2).
+    pose proof Abs_in _ _ _ _ H10 H9.
+    specialize (H2 k). 
+    destruct H2.
+    2:{ destruct H2 as [? [? [? ?]]]. apply lt_le in H5. exact H5. }
+    destruct H2.
+    destruct ((relate_single (key_of_node n0) (value_of_node n0)) k) eqn:?H. 
+    { unfold relate_single in H5. assert (k=(key_of_node n0)). { destruct (Z.eq_dec k (key_of_node n0)). tauto. discriminate H5. } rewrite H6. simpl. simpl. lia. }
+    assert (m2 k = Some v). { unfold combine in H1; rewrite H2 in H1; rewrite H5 in H1. destruct (m2 k);[ exact H1| discriminate H1]. }
+    clear H1.
+    inversion H8;subst.
+    specialize (IHall_L v H8 H11 H6).
+    pose proof optionZ_lte_cong _ _ _ H3 IHall_L.
+    apply lt_le in H1; exact H1.
+Qed.
+
+Lemma Abs_in_half:
+forall t lo hi m ,
+Abs_half t m->
+SearchTree_half_in (Some lo) t (Some hi)->
+(* SearchTree_half_out LO t HI-> *)
+forall k, m k= None \/ (exists v, m k =Some v /\  (optionZ_le (Some k) (Some lo) \/ optionZ_le (Some hi) (Some k))).
+Proof.
+  intros. revert H k. revert m. induction H0;subst;intros. 
+  + inversion H0;subst.  left. tauto.
+  + inversion H1;subst.
+    specialize (IHSearchTree_half_in m2 H8 k).
+    destruct IHSearchTree_half_in.
+    { pose proof Abs_in _ _ _ _ H7 H.
+      specialize (H3 k). 
+      destruct H3.
+      { destruct H3. destruct ((relate_single (key_of_node n) (value_of_node n)) k) eqn: ?H. 
+        { right. exists v. split;[unfold combine;rewrite H2;rewrite H3;rewrite H5;reflexivity|]. unfold relate_single in H5. assert(k=(key_of_node n)). { destruct(Z.eq_dec k (key_of_node n)). tauto. discriminate H5. } rewrite H6 in *. left. simpl. lia. }
+        left. unfold combine;rewrite H2;rewrite H3;rewrite H5;reflexivity. }
+      destruct H3 as [v [? [? ?]]].
+      destruct ((relate_single (key_of_node n) (value_of_node n)) k) eqn: ?H.
+      { left. unfold combine;rewrite H2;rewrite H3;rewrite H6;reflexivity. }
+      right. exists v. split;[unfold combine; rewrite H2;rewrite H3;rewrite H6;reflexivity|]. left. apply lt_le in H5;exact H5. }
+    destruct H2 as [v [? ?]].
+    destruct (m1 k) eqn: ?H;destruct ((relate_single (key_of_node n) (value_of_node n)) k) eqn: ?H.
+    { left. assert(k=(key_of_node n)). {unfold relate_single in H5 . destruct(Z.eq_dec k (key_of_node n)). tauto. discriminate H5. } rewrite H6 in *. pose proof Abs_in _ _ _ _ H7 H. specialize (H9 (key_of_node n)). destruct H9. { destruct H9. rewrite H4 in H9. discriminate H9. } destruct H9 as [? [? [? ?]]]. simpl in H11. lia. }
+    { left. unfold combine; rewrite H2;rewrite H4;rewrite H5;reflexivity. }
+    { left. unfold combine; rewrite H2;rewrite H4;rewrite H5;reflexivity. }
+    { right. exists v. split;[unfold combine; rewrite H2;rewrite H4;rewrite H5;reflexivity|]. 
+      destruct H3;[|right;exact H3].
+      destruct lo0 ;[rename k0 into lo0|].
+      { left. apply optionZ_lt_SearchTree in H. pose proof optionZ_lte_cong _ _ _ H H3. apply lt_le in H6;exact H6. }
+      inversion H0;subst.
+      { inversion H8. rewrite <- H10 in H2. unfold relate_default in H2. discriminate H2. }
+      pose proof l_none_le _ _ _ _ _ _ H0 H8 H2.
+      right. exact H10. }
+  + inversion H1;subst.
+    specialize (IHSearchTree_half_in m2 H8 k).
+    destruct IHSearchTree_half_in.
+    { pose proof Abs_in _ _ _ _ H7 H.
+      specialize (H3 k). 
+      destruct H3.
+      { destruct H3. destruct ((relate_single (key_of_node n) (value_of_node n)) k) eqn: ?H. 
+        { right. exists v. split;[unfold combine;rewrite H2;rewrite H3;rewrite H5;reflexivity|]. unfold relate_single in H5. assert(k=(key_of_node n)). { destruct(Z.eq_dec k (key_of_node n)). tauto. discriminate H5. } rewrite H6 in *. right. simpl. lia. }
+        left. unfold combine;rewrite H2;rewrite H3;rewrite H5;reflexivity. }
+      destruct H3 as [v [? [? ?]]].
+      destruct ((relate_single (key_of_node n) (value_of_node n)) k) eqn: ?H.
+      { left. unfold combine;rewrite H2;rewrite H3;rewrite H6;reflexivity. }
+      right. exists v. split;[unfold combine; rewrite H2;rewrite H3;rewrite H6;reflexivity|]. right. apply lt_le in H4;exact H4. }
+    destruct H2 as [v [? ?]].
+    destruct (m1 k) eqn: ?H;destruct ((relate_single (key_of_node n) (value_of_node n)) k) eqn: ?H.
+    { left. assert(k=(key_of_node n)). {unfold relate_single in H5 . destruct(Z.eq_dec k (key_of_node n)). tauto. discriminate H5. } rewrite H6 in *. pose proof Abs_in _ _ _ _ H7 H. specialize (H9 (key_of_node n)). destruct H9. { destruct H9. rewrite H4 in H9. discriminate H9. } destruct H9 as [? [? [? ?]]]. simpl in H10. lia. }
+    { left. unfold combine; rewrite H2;rewrite H4;rewrite H5;reflexivity. }
+    { left. unfold combine; rewrite H2;rewrite H4;rewrite H5;reflexivity. }
+    { right. exists v. split;[unfold combine; rewrite H2;rewrite H4;rewrite H5;reflexivity|]. 
+      destruct H3;[left;exact H3|].
+      destruct hi0 ;[rename k0 into hi0|].
+      { right. apply optionZ_lt_SearchTree in H. pose proof optionZ_let_cong _ _ _ H3 H. apply lt_le in H6;exact H6. }
+      inversion H0;subst.
+      { inversion H8. rewrite <- H10 in H2. unfold relate_default in H2. discriminate H2. }
+      pose proof r_none_le _ _ _ _ _ _ H0 H8 H2.
+      left. exact H10. }
+Qed.
+
+Lemma step_correct_le: 
+  forall h t h' t' m1 m2 lo hi LO HI,
     splay_step (h,t) (h',t') ->
     Abs_half h m1 ->
     Abs t m2 ->
-    exists m1' m2',
-      (Abs_half h' m1') /\ (Abs t' m2') /\ 
-      (forall k, combine m1' m2' k = combine m1 m2 k).
+    SearchTree (Some lo) t (Some hi)->
+    (SearchTree_half_in (Some lo) h (Some hi))->
+    (SearchTree_half_out (Some LO) h (Some HI))->
+    optionZ_le (Some LO) (Some lo)->
+    optionZ_le (Some hi) (Some HI)->
+    (exists  lo' hi' LO' HI' m1' m2',
+      (SearchTree (Some lo') t' (Some hi') )/\
+      (SearchTree_half_in (Some lo') h' (Some hi')) /\ (SearchTree_half_out (Some LO') h' (Some HI')) /\  optionZ_le (Some LO') (Some lo') /\
+    optionZ_le (Some hi') (Some HI') /\ (Abs_half h' m1') /\ (Abs t' m2') /\ 
+      (forall k, combine m1' m2' k = combine m1 m2 k)).
 Proof.
   intros.
+  pose proof step_preserves _ _ _ _ _ _ _ _ H5 H6 H3 H4 H2 H.
+  destruct H7 as [lo' [hi' [? [? [? [? ?]]]]]].
+  exists lo',hi', LO ,HI. 
   inversion H;subst.
-  + inversion H0;subst.
-    inversion H8;subst.
-    inversion H1;subst.
-    exists m4. 
-    exists (combine lm (combine (relate_single (key_of_node n1) (value_of_node n1)) 
+  + inversion H0;subst. inversion H1;subst. inversion H18;subst. exists m2.  exists (combine lm (combine (relate_single (key_of_node n1) (value_of_node n1)) 
      (combine rm (combine (relate_single (key_of_node n2) (value_of_node n2)) 
      (combine m0 (combine (relate_single (key_of_node n3) (value_of_node n3))
-      m1)))))).
-    split; try split.
-    { exact H10. }
-    { constructor;try tauto; try constructor;try tauto;try constructor;tauto . }
-    intros.
-    simpl.
-    
-Admitted.
-
+      m1)))))). split ;try tauto. split ;try tauto. split ;try tauto. split ;try tauto. split ;try tauto. split ;try tauto. split. constructor;try tauto. constructor;try tauto.  constructor;try tauto. intros.  clear H7 H8 H11 H5 H6 H3 H4 H H0 H18 H1. inversion H9;subst;clear H9. inversion H6;subst;clear H6. inversion H8;subst;clear H8. pose proof Abs_in _ _ _ _ H16 H5 k; pose proof optionZ_lt_SearchTree _ _ _ H5; clear H16 H5. pose proof Abs_in _ _ _ _ H19 H7 k; pose proof optionZ_lt_SearchTree _ _ _ H7; clear H19 H7. pose proof Abs_in _ _ _ _ H17 H6 k; pose proof optionZ_lt_SearchTree _ _ _ H6; clear H17 H6. clear H2. pose proof Abs_in _ _ _ _ H21 H9 k. clear H21 H9.
+pose proof Abs_in_half _ _ _ _ H22 H10 k; clear H22 H10. destruct H. 
+2:{ destruct H1.
+    2:{ destruct H as [v[?[? ? ]]]. destruct H1 as [v1[?[? ? ]]]. simpl in H9. simpl in H8. 
+lia. }
+    destruct H4.
+    2:{ destruct H as [v[?[? ? ]]]. destruct H4 as [v1[?[? ? ]]]. simpl in *.  lia. }
+    destruct H2.
+    2:{ destruct H as [v[?[? ? ]]]. destruct H2 as [v1[?[? ? ]]]. simpl in *.  lia. }
+    destruct H6; destruct H1;destruct H4;destruct H2.  
+    2:{ destruct H as [v[?[? ? ]]]. destruct H6 as [v1[? ?]]. simpl in *. lia. }
+    destruct H as[v[?[? ?]]]. unfold combine.  rewrite H1, H4,H2,H6,H. clear H1 H2 H4 H6 H. unfold relate_single. simpl in *. destruct (Z.eq_dec k (key_of_node n1));try lia. destruct (Z.eq_dec k (key_of_node n2));try lia. destruct (Z.eq_dec k (key_of_node n3));try lia. tauto.  }
+          destruct H. clear H7. 
+      destruct H1.
+  2:{ destruct H1 as [v[?[? ? ]]]. destruct H4.
+    2:{ destruct H4 as [v1[?[? ? ]]]. simpl in *.  lia. }
+    destruct H2.
+    2:{destruct H2 as [v1[?[? ? ]]]. simpl in *.  lia. }
+    destruct H6.
+    2:{ destruct H6 as [v1[? ? ]]. simpl in *. lia. }
+      destruct H4;destruct H2. unfold combine. rewrite H1, H4,H2,H6,H. clear H1 H2 H4 H6 H. unfold relate_single. simpl in *. destruct (Z.eq_dec k (key_of_node n1));try lia. destruct (Z.eq_dec k (key_of_node n2));try lia. destruct (Z.eq_dec k (key_of_node n3));try lia. tauto.  }
+      destruct H1. 
+      destruct H4.
+    2:{ destruct H4 as [v[?[? ? ]]].  destruct H2.
+    2:{destruct H2 as [v1[?[? ? ]]]. simpl in *.  lia. }
+    destruct H6.
+    2:{ destruct H6 as [v1[? ? ]]. simpl in *. lia. }
+      destruct H2. unfold combine. rewrite H1,H2,H6, H4,H. clear H1 H2 H6 H4 H. unfold relate_single. simpl in *. destruct (Z.eq_dec k (key_of_node n1));try lia. destruct (Z.eq_dec k (key_of_node n2));try lia. destruct (Z.eq_dec k (key_of_node n3));try lia. tauto.  }
+      destruct H2.  
+      2:{destruct H2 as [v[?[? ?] ]]. destruct H6.
+    2:{ destruct H6 as [v1[? ? ]]. simpl in *. lia. }
+      destruct H4. unfold combine. rewrite H1,H2,H6, H4,H. clear H1 H2 H6 H4 H. unfold relate_single. simpl in *. destruct (Z.eq_dec k (key_of_node n1));try lia. destruct (Z.eq_dec k (key_of_node n2));try lia. destruct (Z.eq_dec k (key_of_node n3));try lia. tauto.  }
+      destruct H6;destruct H4;destruct H2.
+      1:{unfold combine. rewrite H1,H2,H6, H4,H. clear H1 H2 H6 H4 H. simpl in *. unfold relate_single. destruct (Z.eq_dec k (key_of_node n1)).
+      1:{ destruct (Z.eq_dec k (key_of_node n2));try lia. destruct (Z.eq_dec k (key_of_node n3));try lia. tauto. }
+    destruct (Z.eq_dec k (key_of_node n2)). 1:{ destruct (Z.eq_dec k (key_of_node n3));try lia. tauto. } destruct (Z.eq_dec k (key_of_node n3));try tauto. }
+    destruct H6 as [v[? ?]]. destruct H10;simpl in *;
+   unfold combine; rewrite H1,H2,H6, H4,H; clear H1 H2 H6 H4 H; simpl in *; unfold relate_single;  destruct (Z.eq_dec k (key_of_node n1));try lia; destruct (Z.eq_dec k (key_of_node n2));try lia; destruct (Z.eq_dec k (key_of_node n3));try lia; tauto. 
+ +    
+(* destruct H0;destruct H1;destruct H2;destruct H3.
+1:{ unfold combine;rewrite H3, H, H2, H1. unfold relate_single. destruct (Z.eq_dec k (key_of_node n1)). rewrite H0.
+ *)
+  Admitted.
+ 
 Lemma combine_default:
-  forall m0,
-  (forall k, m0 k = relate_default k)->
-  (forall m,
-    forall k, m k = combine m0 m k ).
+  forall m ,
+  forall k, m k= combine relate_default m k.
 Proof.
-intros. unfold combine, relate_default. induction m. specialize (H k). rewrite H. simpl. reflexivity. specialize (H k). rewrite H. simpl. reflexivity. 
+intros. unfold combine, relate_default. induction m;tauto. 
 Qed.
 
-
-Lemma Abs_congr: 
-  forall t m1 m2, 
-    (forall k, m1 k = m2 k) ->
-    Abs t m1 -> 
-    Abs t m2.
+Lemma correct_le:
+   forall h t t' m1 m2 lo hi LO HI,
+    Abs_half h m1 ->
+    Abs t m2 ->
+    splay h t t' ->
+    SearchTree (Some lo) t (Some hi)->(* new *)
+    SearchTree_half_in (Some lo) h (Some hi)->(* new *)
+    SearchTree_half_out (Some LO) h (Some HI)->(* new *)
+    optionZ_le (Some LO) (Some lo) ->
+    optionZ_le (Some hi) (Some HI) ->
+    Abs t' (combine m1 m2).
 Proof.
   intros.
-  revert m2 H.
-  induction H0;intros.
-  + apply Abs_E.
-    intros.
-    specialize (H k).
-    specialize (H0 k).
-    rewrite <- H0.
-    exact H.
-  + (* set (m2l := fun k => if (lm k) then m2 k else None).
-    set (m2r := fun k => if (rm k) then m2 k else None).
-    specialize (IHAbs1 m2l).
-    specialize (IHAbs2 m2r).
-    assert (forall k : Key, lm k = m2l k).
-    { intros. destruct (lm k).  *)
-    
-    set(ml := fun k => if Some (lm k) then m2 k else None).
-    specialize (IHAbs1 ml).
-    assert (forall k : Key, lm k = ml k). 
-    intros.
-    - unfold ml. destruct (lm k) eqn:?H.
-      unfold ml in IHAbs1.
-    set(m4 := fun k => if rm k then m2 k else None).
-Admitted.
-
-Admitted.
-
-
-
-Theorem correctness: correct.
-Proof.
-  unfold correct;intros.
   apply splay_splay' in H1.
-  revert H H0.
-  revert m1 m2.
+  revert H H0 H2 H3 H4 H5 H6 .
+  revert m1 m2 lo hi LO HI.
   induction_1n H1;intros.
   + inversion H;subst.
-    pose proof combine_default m1 H1 m2. 
-    pose proof Abs_congr t' m2 (combine m1 m2) H2 H0. 
-    exact H3.
-  + pose proof step_correct _ _ _ _ _ _ H H1 H2.
-    destruct H3 as [m1' [m2' [? [? ?]]]].
-    clear H H1 H2.
-    specialize (IHrt _ _ H3 H4).
-    clear H3 H4.
-    pose proof Abs_congr t' (combine m1' m2') (combine m1 m2) H5 IHrt.
-    exact H.
+  (* pose proof map_eq. m2 relate_default m2 H1.  *)
+    pose proof combine_default m2 . pose proof map_eq _ _ H1. (* rewrite <-H7 in H9. *) rewrite <-H7. tauto.
+  + 
+  pose proof step_correct_le _ _ _ _ _ _ _ _ _ _ H H1 H2 H3 H4 H5 H6 H7.
+  destruct H8 as [lo' [hi'[LO'[HI'[m1'[m2'[?[?[?[?[?[?[? ?]]]]]]]]]]]]].
+  specialize (IHrt _ _ _ _ _ _  H13 H14 H8 H9 H10 H11 H12). pose proof map_eq _ _ H15. rewrite<- H16 . tauto.
+   Qed.
+   
+Theorem correctness: correct.
+Proof.
+unfold correct;intros.
+pose proof lt_le _ _ H6. pose proof lt_le _ _ H5.
+pose proof correct_le _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3 H4 H8 H7. tauto. 
 Qed.
-
 
 
 (* 2021-05-07 20:39 *)
